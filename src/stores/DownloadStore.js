@@ -1,7 +1,6 @@
 import DownloadActions from '../actions/DownloadActions'
 import alt from '../alt'
 import socket from 'filepizza-socket'
-import { getClient } from '../wt'
 
 const SPEED_REFRESH_TIME = 2000
 
@@ -21,7 +20,6 @@ export default alt.createStore(class DownloadStore {
     this.fileName = ''
     this.fileSize = 0
     this.fileType = ''
-    this.infoHash = null
     this.peers = 0
     this.progress = 0
     this.speedDown = 0
@@ -34,21 +32,28 @@ export default alt.createStore(class DownloadStore {
     if (this.status !== 'ready') return
     this.status = 'requesting'
 
-    getClient().then((client) => {
-      client.add(this.infoHash, (torrent) => {
+    socket.emit('rtcConfig', {}, (rtcConfig) => {
+      socket.emit('requestDownload', {
+        token: this.token
+      }, (upload) => {
+        const pc = new RTCPeerConnection(rtcConfig)
+        const dc = pc.createDataChannel("file.pizza transfer")
+
+        dc.onmessage = function (event) {
+          console.log("received: " + event.data);
+        };
+
+        dc.onopen = function () {
+          console.log("datachannel open");
+        };
+
+        dc.onclose = function () {
+          console.log("datachannel close");
+        };
+
+        pc.createOffer().then(offer => pc.setLocalDescription(offer))
+
         this.setState({ status: 'downloading' })
-
-        const updateSpeed = () => {
-          this.setState({
-            speedUp: torrent.uploadSpeed,
-            speedDown: torrent.downloadSpeed,
-            peers: torrent.numPeers
-          })
-        }
-
-        torrent.on('upload', updateSpeed)
-        torrent.on('download', updateSpeed)
-        setInterval(updateSpeed, SPEED_REFRESH_TIME)
 
         const file = torrent.files[0]
         const stream = file.createReadStream()
@@ -64,7 +69,6 @@ export default alt.createStore(class DownloadStore {
           } else {
             this.setState({ progress: torrent.progress })
           }
-
         })
       })
     })

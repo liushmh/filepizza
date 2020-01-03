@@ -1,13 +1,6 @@
 import UploadActions from "../actions/UploadActions";
 import alt from "../alt";
 import socket from "filepizza-socket";
-import { getClient } from "../wt";
-
-const TRACKERS = [
-  ["wss://tracker.btorrent.xyz"],
-  ["wss://tracker.openwebtorrent.com"],
-  ["wss://tracker.fastcast.nz"]
-];
 
 const SPEED_REFRESH_TIME = 2000;
 
@@ -19,7 +12,6 @@ export default alt.createStore(
       this.fileName = "";
       this.fileSize = 0;
       this.fileType = "";
-      this.infoHash = null;
       this.peers = 0;
       this.speedUp = 0;
       this.status = "ready";
@@ -31,40 +23,44 @@ export default alt.createStore(
       if (this.status !== "ready") return;
       this.status = "processing";
 
-      getClient().then(client => {
-        client.seed(file, { announce: TRACKERS }, torrent => {
-          const updateSpeed = () => {
+      socket.emit('rtcConfig', {}, (rtcConfig) => {
+        const pc = new RTCPeerConnection(rtcConfig)
+        const dc = pc.createDataChannel("file.pizza transfer")
+
+        dc.onmessage = function (event) {
+          console.log("received: " + event.data);
+        };
+
+        dc.onopen = function () {
+          console.log("datachannel open");
+        };
+
+        dc.onclose = function () {
+          console.log("datachannel close");
+        };
+
+        socket.on("updateDownloaders", function (data, res) {
+          console.log(data)
+        });
+
+        socket.emit(
+          "upload",
+          {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          },
+          (res) => {
             this.setState({
-              speedUp: torrent.uploadSpeed,
-              peers: torrent.numPeers
-            });
-          };
-
-          torrent.on("upload", updateSpeed);
-          torrent.on("download", updateSpeed);
-          setInterval(updateSpeed, SPEED_REFRESH_TIME);
-
-          socket.emit(
-            "upload",
-            {
+              status: "uploading",
+              token: res.token,
+              shortToken: res.shortToken,
               fileName: file.name,
               fileSize: file.size,
-              fileType: file.type,
-              infoHash: torrent.magnetURI
-            },
-            (res) => {
-              this.setState({
-                status: "uploading",
-                token: res.token,
-                shortToken: res.shortToken,
-                fileName: file.name,
-                fileSize: file.size,
-                fileType: file.type,
-                infoHash: torrent.magnetURI
-              });
-            }
-          );
-        });
+              fileType: file.type
+            });
+          }
+        );
       });
     }
   },

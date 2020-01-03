@@ -12,7 +12,6 @@ function bootstrap (uploader, req, res, next) {
         fileSize: uploader.fileSize,
         fileName: uploader.fileName,
         fileType: uploader.fileType,
-        infoHash: uploader.infoHash
       }
     }
 

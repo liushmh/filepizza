@@ -26,21 +26,20 @@ function generateShortToken() {
 }
 
 export function create(socket) {
-
   return tokenGenerator.generate(TOKEN_OPTIONS).then((parts) => {
     const token = parts.join('/')
     const shortToken = generateShortToken()
     let result = {
       token: token,
       shortToken: shortToken,
-      socket: socket
+      socket: socket,
+      downloaders: [],
     }
 
     tokens[token] = result
     shortTokens[shortToken] = result
     return result
   })
-
 }
 
 export function find(token) {

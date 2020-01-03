@@ -49,15 +49,42 @@ function bootServer(server) {
   io.on("connection", function(socket) {
     var upload = null;
 
-    socket.on("upload", function(metadata, res) {
+    socket.on("upload", function(data, res) {
       if (upload) return;
       db.create(socket).then(u => {
         upload = u;
-        upload.fileName = metadata.fileName;
-        upload.fileSize = metadata.fileSize;
-        upload.fileType = metadata.fileType;
-        upload.infoHash = metadata.infoHash;
-        res({ token: upload.token, shortToken: upload.shortToken });
+        upload.fileName = data.fileName;
+        upload.fileSize = data.fileSize;
+        upload.fileType = data.fileType;
+        res({
+          token: upload.token,
+          shortToken: upload.shortToken
+        });
+      });
+    });
+
+    socket.on("requestDownload", function(data, res) {
+      if (!upload) {
+        upload = db.find(data.token) || db.findShort(data.shortToken)
+      }
+
+      if (!upload) {
+        res(null)
+      }
+
+      upload.downloaders.push({
+        ip: socket.request.connection.remoteAddress
+      })
+
+      upload.socket.emit(
+        'updateDownloaders',
+        upload.downloaders
+      );
+
+      res({
+        fileName: upload.fileName,
+        fileSize: upload.fileSize,
+        fileType: upload.fileType
       });
     });
 
