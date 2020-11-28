@@ -26,7 +26,6 @@ export default class ErrorPage extends React.Component {
 
       <Spinner dir="up" />
 
-      <h1 className="with-subtitle">FilePizza</h1>
       <p className="subtitle">
         <strong>{this.state.status}:</strong> {this.state.message}
       </p>
