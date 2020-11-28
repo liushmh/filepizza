@@ -6,6 +6,8 @@ var ice = require("./ice");
 var socketIO = require("socket.io");
 var winston = require("winston");
 
+require('dotenv').config();
+
 process.on("unhandledRejection", (reason, p) => {
   p.catch(err => {
     log.error("Exiting due to unhandled rejection!");
