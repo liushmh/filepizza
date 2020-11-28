@@ -1,0 +1,4 @@
+PORT=9966
+HTTPS_KEY=/etc/ssl/private/apache-selfsigned.key
+HTTPS_CERT=/etc/ssl/certs/apache-selfsigned.crt
+QUIET=false
